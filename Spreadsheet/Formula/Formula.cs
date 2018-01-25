@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace Formulas
 {
@@ -16,6 +17,11 @@ namespace Formulas
     /// </summary>
     public class Formula
     {
+
+
+        private Stack<String> operatorStack;
+        public Stack<String> valueStack;
+
         /// <summary>
         /// Creates a Formula from a string that consists of a standard infix expression composed
         /// from non-negative floating-point numbers (using C#-like syntax for double/int literals), 
@@ -38,6 +44,85 @@ namespace Formulas
         /// </summary>
         public Formula(String formula)
         {
+            operatorStack = new Stack<string>();
+            valueStack = new Stack<string>();
+            IEnumerable<String> strings = GetTokens(formula);
+
+            int parenthesis = 0;
+            String prev = "";
+
+            String lpPattern = @"\(";
+            String rpPattern = @"\)";
+            String opPattern = @"^[\+\-*/]$";
+            String varPattern = @"[a-zA-Z][0-9a-zA-Z]*";
+            String doublePattern = @"(?:\d+\.\d*|\d*\.\d+|\d+)(?:e[\+-]?\d+)?";
+            String spacePattern = @"\s+";
+            
+            foreach (String s in strings)
+            {
+            
+                if (prev == "" && Regex.IsMatch(s, opPattern) || prev == "" && Regex.IsMatch(s, rpPattern))
+                {
+                    throw new FormulaFormatException("Not starting with a number, variable, or open parenthesis");
+                }
+                else if ((Regex.IsMatch(prev, lpPattern) || Regex.IsMatch(prev, opPattern)) && (Regex.IsMatch(s, opPattern) || Regex.IsMatch(s, rpPattern)))
+                {
+                    throw new FormulaFormatException("Following opening parenthesis or operation with an operation or closing parenthesis");
+                }
+                else if ((Regex.IsMatch(prev, doublePattern) || Regex.IsMatch(prev, varPattern) || Regex.IsMatch(prev, rpPattern)) && !(Regex.IsMatch(s, opPattern) || Regex.IsMatch(s, rpPattern)))
+                {
+                    throw new FormulaFormatException("Following number, variable or closing parenthesis with an number, variable or open parenthesis");
+                }
+                else if (Regex.IsMatch(s, spacePattern))
+                {
+                    continue;
+                }
+                else if (Regex.IsMatch(s, lpPattern))
+                {
+                    parenthesis++;
+                    operatorStack.Push(s);
+                }
+                else if (Regex.IsMatch(s, rpPattern))
+                {
+                    parenthesis--;
+                    if (parenthesis == -1)
+                    {
+                        throw new FormulaFormatException("Too many closing parenthesis");
+                    }
+                    else
+                    {
+                        operatorStack.Push(s);
+                    }
+                }
+                else if (Regex.IsMatch(s, opPattern))
+                {
+                    operatorStack.Push(s);
+                }
+                else if (Regex.IsMatch(s, varPattern) || Regex.IsMatch(s, doublePattern))
+                {
+                    valueStack.Push(s);
+                }
+
+                else
+                {
+                    throw new FormulaFormatException("Some Error");
+                }
+                prev = s;
+            }
+
+            if (valueStack.Count == 0 && operatorStack.Count == 0)
+            {
+                throw new FormulaFormatException("No Tokens");
+            }
+            else if (parenthesis != 0)
+            {
+                throw new FormulaFormatException("Too many opening parenthesis");
+            }
+            else if (Regex.IsMatch(prev, rpPattern) || Regex.IsMatch(prev, opPattern))
+            {
+                throw new FormulaFormatException("Not closing with number, variable, or closing parenthesis");
+            }
+
         }
         /// <summary>
         /// Evaluates this Formula, using the Lookup delegate to determine the values of variables.  (The
