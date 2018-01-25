@@ -140,16 +140,40 @@ namespace Formulas
             {
                 if (Regex.IsMatch(t, doublePattern) || Regex.IsMatch(t, varPattern))
                 {
+                    
+                    Double current;
+                    if (Regex.IsMatch(t, doublePattern))
+                    {
+                        current = Convert.ToDouble(t);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            current = lookup(t);
+                        }
+                        catch (UndefinedVariableException)
+                        {
+                            throw new FormulaEvaluationException("Undefined value");
+                        }
+                    }
+
                     if (operatorStack.Count > 0)
                     {
                         op = operatorStack.Pop();
                         if (op == "/" || op == "*")
                         {
                             Double previous = valueStack.Pop();
-                            Double current = lookup(t);
                             if (op == "/")
                             {
-                                valueStack.Push(previous / current);
+                                if (current != 0)
+                                {
+                                    valueStack.Push(previous / current);
+                                }
+                                else
+                                {
+                                    throw new FormulaEvaluationException("Undefined value");
+                                }
                             }
                             else
                             {
@@ -161,12 +185,12 @@ namespace Formulas
                         else
                         {
                             operatorStack.Push(op);
-
+                            valueStack.Push(current);
                         }
                     }
                     else
                     {
-                        valueStack.Push(lookup(t));
+                        valueStack.Push(Convert.ToDouble(t));
                     }
                 }
                 else if (t == "+" || t == "-")
@@ -183,7 +207,7 @@ namespace Formulas
                         Double l = valueStack.Pop();
                         valueStack.Push(l - r);
                     }
-                    else
+                    else if (operatorStack.Count > 0)
                     {
                         operatorStack.Push(op);
                     }
@@ -221,7 +245,15 @@ namespace Formulas
                         }
                         else if (op == "/")
                         {
-                            valueStack.Push(l / r);
+                            if (r != 0)
+                            {
+                                valueStack.Push(l / r);
+                            }
+                            else
+                            {
+                                throw new FormulaEvaluationException("Dividing by 0");
+                            }
+                            
                         }
 
                     }
