@@ -18,9 +18,9 @@ namespace Formulas
     public class Formula
     {
 
-
         private Stack<String> operatorStack;
-        public Stack<String> valueStack;
+        private Stack<Double> valueStack;
+        private IEnumerable<string> strings;
 
         /// <summary>
         /// Creates a Formula from a string that consists of a standard infix expression composed
@@ -45,8 +45,8 @@ namespace Formulas
         public Formula(String formula)
         {
             operatorStack = new Stack<string>();
-            valueStack = new Stack<string>();
-            IEnumerable<String> strings = GetTokens(formula);
+            valueStack = new Stack<Double>();
+            strings = GetTokens(formula);
 
             int parenthesis = 0;
             String prev = "";
@@ -80,7 +80,6 @@ namespace Formulas
                 else if (Regex.IsMatch(s, lpPattern))
                 {
                     parenthesis++;
-                    operatorStack.Push(s);
                 }
                 else if (Regex.IsMatch(s, rpPattern))
                 {
@@ -89,20 +88,17 @@ namespace Formulas
                     {
                         throw new FormulaFormatException("Too many closing parenthesis");
                     }
-                    else
-                    {
-                        operatorStack.Push(s);
-                    }
                 }
                 else if (Regex.IsMatch(s, opPattern))
                 {
-                    operatorStack.Push(s);
+                    prev = s;
+                    continue;
                 }
                 else if (Regex.IsMatch(s, varPattern) || Regex.IsMatch(s, doublePattern))
                 {
-                    valueStack.Push(s);
+                    prev = s;
+                    continue;
                 }
-
                 else
                 {
                     throw new FormulaFormatException("Some Error");
@@ -110,7 +106,7 @@ namespace Formulas
                 prev = s;
             }
 
-            if (valueStack.Count == 0 && operatorStack.Count == 0)
+            if (prev == "")
             {
                 throw new FormulaFormatException("No Tokens");
             }
@@ -135,7 +131,118 @@ namespace Formulas
         /// </summary>
         public double Evaluate(Lookup lookup)
         {
-            return 0;
+
+            String op = "";
+            String varPattern = @"[a-zA-Z][0-9a-zA-Z]*";
+            String doublePattern = @"(?:\d+\.\d*|\d*\.\d+|\d+)(?:e[\+-]?\d+)?";
+
+            foreach (String t in strings)
+            {
+                if (Regex.IsMatch(t, doublePattern) || Regex.IsMatch(t, varPattern))
+                {
+                    if (operatorStack.Count > 0)
+                    {
+                        op = operatorStack.Pop();
+                        if (op == "/" || op == "*")
+                        {
+                            Double previous = valueStack.Pop();
+                            Double current = lookup(t);
+                            if (op == "/")
+                            {
+                                valueStack.Push(previous / current);
+                            }
+                            else
+                            {
+                                valueStack.Push(previous * current);
+                            }
+                            // Why does this not work?
+                            // current = previous (op == "/" ? / : *) current;
+                        }
+                        else
+                        {
+                            operatorStack.Push(op);
+
+                        }
+                    }
+                    else
+                    {
+                        valueStack.Push(lookup(t));
+                    }
+                }
+                else if (t == "+" || t == "-")
+                {
+                    if (operatorStack.Count > 0 && (op = operatorStack.Pop()) == "+")
+                    {
+                        Double r = valueStack.Pop();
+                        Double l = valueStack.Pop();
+                        valueStack.Push(l + r);
+                    }
+                    else if (operatorStack.Count > 0 &&  op == "-")
+                    {
+                        Double r = valueStack.Pop();
+                        Double l = valueStack.Pop();
+                        valueStack.Push(l - r);
+                    }
+                    else
+                    {
+                        operatorStack.Push(op);
+                    }
+                    operatorStack.Push(t);
+                }
+                else if (t == "*" || t == "/" || t == "(")
+                {
+                    operatorStack.Push(t);
+                }
+                else if (t == ")")
+                {
+                    if (operatorStack.Count > 0 && (op = operatorStack.Pop()) == "+" || op == "-")
+                    {
+                        Double r = valueStack.Pop();
+                        Double l = valueStack.Pop();
+                        if (op == "+")
+                        {
+                            valueStack.Push(l + r);
+                        }
+                        else if (op == "-")
+                        {
+                            valueStack.Push(l - r);
+                        }
+
+                    }
+                    operatorStack.Pop();
+
+                    if (operatorStack.Count > 0 && (op = operatorStack.Pop()) == "*" || op == "/")
+                    {
+                        Double r = valueStack.Pop();
+                        Double l = valueStack.Pop();
+                        if (op == "*")
+                        {
+                            valueStack.Push(l * r);
+                        }
+                        else if (op == "/")
+                        {
+                            valueStack.Push(l / r);
+                        }
+
+                    }
+                    else
+                    {
+                        operatorStack.Push(op);
+                    }
+                }
+            }
+            if (operatorStack.Count == 0)
+            {
+                return valueStack.Pop();
+            }
+            if ((op = operatorStack.Pop()) == "+")
+            {
+                return valueStack.Pop() + valueStack.Pop();
+            }
+
+            Double right = valueStack.Pop();
+            Double left = valueStack.Pop();
+            return right - left;
         }
 
         /// <summary>

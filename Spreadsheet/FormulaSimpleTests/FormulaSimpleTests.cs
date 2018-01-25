@@ -29,27 +29,6 @@ namespace FormulaTestCases
         }
 
         /// <summary>
-        /// This should work
-        /// </summary>
-        [TestMethod]
-        public void Constructed()
-        {
-            Formula f = new Formula("2+3");
-            Assert.AreEqual(f.valueStack.Pop(), "3");
-        }
-
-        /// <summary>
-        /// This should work
-        /// </summary>
-        [TestMethod]
-        public void Constructed2()
-        {
-            Formula f = new Formula("23 + 3");
-            Assert.AreEqual(f.valueStack.Pop(), "3");
-        }
-
-
-        /// <summary>
         /// This is another syntax error
         /// </summary>
         [TestMethod]
