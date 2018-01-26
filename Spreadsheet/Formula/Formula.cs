@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace Formulas
 {
@@ -16,6 +17,11 @@ namespace Formulas
     /// </summary>
     public class Formula
     {
+
+        private Stack<String> operatorStack;
+        private Stack<Double> valueStack;
+        private IEnumerable<string> strings;
+
         /// <summary>
         /// Creates a Formula from a string that consists of a standard infix expression composed
         /// from non-negative floating-point numbers (using C#-like syntax for double/int literals), 
@@ -38,6 +44,81 @@ namespace Formulas
         /// </summary>
         public Formula(String formula)
         {
+            operatorStack = new Stack<string>();
+            valueStack = new Stack<Double>();
+            strings = GetTokens(formula);
+
+            int parenthesis = 0;
+            String prev = "";
+
+            String lpPattern = @"\(";
+            String rpPattern = @"\)";
+            String opPattern = @"^[\+\-*/]$";
+            String varPattern = @"[a-zA-Z][0-9a-zA-Z]*";
+            String doublePattern = @"(?:\d+\.\d*|\d*\.\d+|\d+)(?:e[\+-]?\d+)?";
+            String spacePattern = @"\s+";
+            
+            foreach (String s in strings)
+            {
+            
+                if (prev == "" && Regex.IsMatch(s, opPattern) || prev == "" && Regex.IsMatch(s, rpPattern))
+                {
+                    throw new FormulaFormatException("Not starting with a number, variable, or open parenthesis");
+                }
+                else if ((Regex.IsMatch(prev, lpPattern) || Regex.IsMatch(prev, opPattern)) && (Regex.IsMatch(s, opPattern) || Regex.IsMatch(s, rpPattern)))
+                {
+                    throw new FormulaFormatException("Following opening parenthesis or operation with an operation or closing parenthesis");
+                }
+                else if ((Regex.IsMatch(prev, doublePattern) || Regex.IsMatch(prev, varPattern) || Regex.IsMatch(prev, rpPattern)) && !(Regex.IsMatch(s, opPattern) || Regex.IsMatch(s, rpPattern)))
+                {
+                    throw new FormulaFormatException("Following number, variable or closing parenthesis with an number, variable or open parenthesis");
+                }
+                else if (Regex.IsMatch(s, spacePattern))
+                {
+                    continue;
+                }
+                else if (Regex.IsMatch(s, lpPattern))
+                {
+                    parenthesis++;
+                }
+                else if (Regex.IsMatch(s, rpPattern))
+                {
+                    parenthesis--;
+                    if (parenthesis == -1)
+                    {
+                        throw new FormulaFormatException("Too many closing parenthesis");
+                    }
+                }
+                else if (Regex.IsMatch(s, opPattern))
+                {
+                    prev = s;
+                    continue;
+                }
+                else if (Regex.IsMatch(s, varPattern) || Regex.IsMatch(s, doublePattern))
+                {
+                    prev = s;
+                    continue;
+                }
+                else
+                {
+                    throw new FormulaFormatException("Some Error");
+                }
+                prev = s;
+            }
+
+            if (prev == "")
+            {
+                throw new FormulaFormatException("No Tokens");
+            }
+            else if (parenthesis != 0)
+            {
+                throw new FormulaFormatException("Too many opening parenthesis");
+            }
+            else if (Regex.IsMatch(prev, rpPattern) || Regex.IsMatch(prev, opPattern))
+            {
+                throw new FormulaFormatException("Not closing with number, variable, or closing parenthesis");
+            }
+
         }
         /// <summary>
         /// Evaluates this Formula, using the Lookup delegate to determine the values of variables.  (The
@@ -50,7 +131,153 @@ namespace Formulas
         /// </summary>
         public double Evaluate(Lookup lookup)
         {
-            return 0;
+
+            String op = "";
+            String varPattern = @"[a-zA-Z][0-9a-zA-Z]*";
+            String doublePattern = @"(?:\d+\.\d*|\d*\.\d+|\d+)(?:e[\+-]?\d+)?";
+
+            foreach (String t in strings)
+            {
+                if (Regex.IsMatch(t, doublePattern) || Regex.IsMatch(t, varPattern))
+                {
+                    Double current;
+                    if (Regex.IsMatch(t, varPattern))
+                    {
+                        try
+                        {
+                            current = lookup(t);
+                        }
+                        catch (UndefinedVariableException)
+                        {
+                            throw new FormulaEvaluationException("Undefined value");
+                        }
+                        
+                    }
+                    else
+                    {
+                        current = Convert.ToDouble(t);
+                    }
+
+                    if (operatorStack.Count > 0)
+                    {
+                        op = operatorStack.Pop();
+                        if (op == "/" || op == "*")
+                        {
+                            Double previous = valueStack.Pop();
+                            if (op == "/")
+                            {
+                                if (current != 0)
+                                {
+                                    valueStack.Push(previous / current);
+                                }
+                                else
+                                {
+                                    throw new FormulaEvaluationException("Undefined value");
+                                }
+                            }
+                            else
+                            {
+                                valueStack.Push(previous * current);
+                            }
+                            // Why does this not work?
+                            // current = previous (op == "/" ? / : *) current;
+                        }
+                        else
+                        {
+                            operatorStack.Push(op);
+                            valueStack.Push(current);
+                        }
+                    }
+                    else
+                    {
+                        valueStack.Push(current);
+                    }
+                }
+                else if (t == "+" || t == "-")
+                {
+                    if (operatorStack.Count > 0)
+                    {
+                        if ((op = operatorStack.Pop()) == "+")
+                        {
+                            Double r = valueStack.Pop();
+                            Double l = valueStack.Pop();
+                            valueStack.Push(l + r);
+                        }
+                        else if (op == "+")
+                        {
+                            Double r = valueStack.Pop();
+                            Double l = valueStack.Pop();
+                            valueStack.Push(l - r);
+                        }
+                        else
+                        {
+                            operatorStack.Push(op);
+                        } 
+                    }
+                    operatorStack.Push(t);
+                }
+                else if (t == "*" || t == "/" || t == "(")
+                {
+                    operatorStack.Push(t);
+                }
+                else if (t == ")")
+                {
+                    if (operatorStack.Count > 0 && (op = operatorStack.Pop()) == "+" || op == "-")
+                    {
+                        Double r = valueStack.Pop();
+                        Double l = valueStack.Pop();
+                        if (op == "+")
+                        {
+                            valueStack.Push(l + r);
+                        }
+                        else if (op == "-")
+                        {
+                            valueStack.Push(l - r);
+                        }
+                        operatorStack.Pop();
+                    }
+                    
+
+                    if (operatorStack.Count > 0 && (op = operatorStack.Pop()) == "*" || op == "/")
+                    {
+                        Double r = valueStack.Pop();
+                        Double l = valueStack.Pop();
+                        if (op == "*")
+                        {
+                            valueStack.Push(l * r);
+                        }
+                        else if (op == "/")
+                        {
+                            if (r != 0)
+                            {
+                                valueStack.Push(l / r);
+                            }
+                            else
+                            {
+                                throw new FormulaEvaluationException("Dividing by 0");
+                            }
+                            
+                        }
+
+                    }
+                    else if (operatorStack.Count > 0)
+                    {
+                        operatorStack.Push(op);
+                    }
+                }
+            }
+            if (operatorStack.Count == 0)
+            {
+                return valueStack.Pop();
+            }
+            if ((op = operatorStack.Pop()) == "+")
+            {
+                return valueStack.Pop() + valueStack.Pop();
+            }
+
+            Double right = valueStack.Pop();
+            Double left = valueStack.Pop();
+            return right - left;
         }
 
         /// <summary>
