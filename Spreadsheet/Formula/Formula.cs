@@ -140,13 +140,8 @@ namespace Formulas
             {
                 if (Regex.IsMatch(t, doublePattern) || Regex.IsMatch(t, varPattern))
                 {
-                    
                     Double current;
-                    if (Regex.IsMatch(t, doublePattern))
-                    {
-                        current = Convert.ToDouble(t);
-                    }
-                    else
+                    if (Regex.IsMatch(t, varPattern))
                     {
                         try
                         {
@@ -156,6 +151,11 @@ namespace Formulas
                         {
                             throw new FormulaEvaluationException("Undefined value");
                         }
+                        
+                    }
+                    else
+                    {
+                        current = Convert.ToDouble(t);
                     }
 
                     if (operatorStack.Count > 0)
@@ -190,26 +190,29 @@ namespace Formulas
                     }
                     else
                     {
-                        valueStack.Push(Convert.ToDouble(t));
+                        valueStack.Push(current);
                     }
                 }
                 else if (t == "+" || t == "-")
                 {
-                    if (operatorStack.Count > 0 && (op = operatorStack.Pop()) == "+")
+                    if (operatorStack.Count > 0)
                     {
-                        Double r = valueStack.Pop();
-                        Double l = valueStack.Pop();
-                        valueStack.Push(l + r);
-                    }
-                    else if (operatorStack.Count > 0 &&  op == "-")
-                    {
-                        Double r = valueStack.Pop();
-                        Double l = valueStack.Pop();
-                        valueStack.Push(l - r);
-                    }
-                    else if (operatorStack.Count > 0)
-                    {
-                        operatorStack.Push(op);
+                        if ((op = operatorStack.Pop()) == "+")
+                        {
+                            Double r = valueStack.Pop();
+                            Double l = valueStack.Pop();
+                            valueStack.Push(l + r);
+                        }
+                        else if (op == "+")
+                        {
+                            Double r = valueStack.Pop();
+                            Double l = valueStack.Pop();
+                            valueStack.Push(l - r);
+                        }
+                        else
+                        {
+                            operatorStack.Push(op);
+                        } 
                     }
                     operatorStack.Push(t);
                 }
@@ -231,9 +234,9 @@ namespace Formulas
                         {
                             valueStack.Push(l - r);
                         }
-
+                        operatorStack.Pop();
                     }
-                    operatorStack.Pop();
+                    
 
                     if (operatorStack.Count > 0 && (op = operatorStack.Pop()) == "*" || op == "/")
                     {
@@ -257,7 +260,7 @@ namespace Formulas
                         }
 
                     }
-                    else
+                    else if (operatorStack.Count > 0)
                     {
                         operatorStack.Push(op);
                     }
