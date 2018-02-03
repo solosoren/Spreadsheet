@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Dependencies
 {
@@ -49,10 +50,24 @@ namespace Dependencies
     public class DependencyGraph
     {
         /// <summary>
+        /// This is a Dictionary containing a key and the dependees for that key inside of a hashset for the value
+        /// </summary>
+        public Dictionary<string, HashSet<string>> dependees { get; private set; }
+        /// <summary>
+        /// This is a Dictionary containing a key and the dependents for that key inside of a hashset for the value
+        /// </summary>
+        public Dictionary<string, HashSet<string>> dependents { get; private set; }
+        private int size;
+
+        /// <summary>
         /// Creates a DependencyGraph containing no dependencies.
         /// </summary>
         public DependencyGraph()
         {
+            dependees = new Dictionary<string, HashSet<string>>();
+            dependents = new Dictionary<string, HashSet<string>>();
+
+           
         }
 
         /// <summary>
@@ -60,7 +75,7 @@ namespace Dependencies
         /// </summary>
         public int Size
         {
-            get { return 0; }
+            get { return size; }
         }
 
         /// <summary>
@@ -68,7 +83,7 @@ namespace Dependencies
         /// </summary>
         public bool HasDependents(string s)
         {
-            return false;
+            return dependents.ContainsKey(s);
         }
 
         /// <summary>
@@ -76,7 +91,7 @@ namespace Dependencies
         /// </summary>
         public bool HasDependees(string s)
         {
-            return false;
+            return dependees.ContainsKey(s);
         }
 
         /// <summary>
@@ -84,7 +99,11 @@ namespace Dependencies
         /// </summary>
         public IEnumerable<string> GetDependents(string s)
         {
-            return null;
+            HashSet<string> values = dependents[s];
+            foreach (string dependent in values)
+            {
+                yield return dependent;
+            }
         }
 
         /// <summary>
@@ -92,7 +111,11 @@ namespace Dependencies
         /// </summary>
         public IEnumerable<string> GetDependees(string s)
         {
-            return null;
+            HashSet<string> values = dependees[s];
+            foreach (string dependee in values)
+            {
+                yield return dependee;
+            }
         }
 
         /// <summary>
@@ -102,6 +125,25 @@ namespace Dependencies
         /// </summary>
         public void AddDependency(string s, string t)
         {
+            if (dependents.ContainsKey(s)) { dependents[s].Add(t);
+            }
+            else
+            {
+                HashSet<string> set = new HashSet<string>();
+                set.Add(t);
+                dependents.Add(s, set);
+            }
+
+            if (dependees.ContainsKey(t)) { dependees[t].Add(s);
+            }
+            else
+            {
+                HashSet<string> set = new HashSet<string>();
+                set.Add(t);
+                dependees.Add(s, set);
+            }
+
+            size++;
         }
 
         /// <summary>
@@ -111,6 +153,11 @@ namespace Dependencies
         /// </summary>
         public void RemoveDependency(string s, string t)
         {
+            if (dependents.ContainsKey(s) && dependents[s].Contains(t)) {
+                dependents[s].Remove(t);
+                dependees[t].Remove(s);
+                size--;
+            }
         }
 
         /// <summary>
@@ -120,6 +167,16 @@ namespace Dependencies
         /// </summary>
         public void ReplaceDependents(string s, IEnumerable<string> newDependents)
         {
+            IEnumerable<string> oldDependents = GetDependents(s).ToList();
+
+            foreach (string dependent in oldDependents)
+            {
+                RemoveDependency(s, dependent);
+            }
+            foreach (string dependent in newDependents)
+            {
+                AddDependency(s, dependent);
+            }
         }
 
         /// <summary>
@@ -129,6 +186,16 @@ namespace Dependencies
         /// </summary>
         public void ReplaceDependees(string t, IEnumerable<string> newDependees)
         {
+            IEnumerable<string> oldDependees = GetDependees(t).ToList();
+
+            foreach (string dependee in oldDependees)
+            {
+                RemoveDependency(dependee, t);
+            }
+            foreach (string dependee in newDependees)
+            {
+                AddDependency(dependee, t);
+            }
         }
     }
 }
