@@ -1,4 +1,5 @@
 ﻿// Skeleton implementation written by Joe Zachary for CS 3500, January 2018.
+// Soren Nelson
 
 using System;
 using System.Collections.Generic;
@@ -66,8 +67,7 @@ namespace Dependencies
         {
             dependees = new Dictionary<string, HashSet<string>>();
             dependents = new Dictionary<string, HashSet<string>>();
-
-           
+            size = 0;
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace Dependencies
             {
                 HashSet<string> set = new HashSet<string>();
                 set.Add(t);
-                dependees.Add(s, set);
+                dependees.Add(t, set);
             }
 
             size++;
