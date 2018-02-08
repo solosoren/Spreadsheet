@@ -114,7 +114,8 @@ namespace Formulas
             {
                 throw new FormulaFormatException("Too many opening parenthesis");
             }
-            else if (Regex.IsMatch(prev, rpPattern) || Regex.IsMatch(prev, opPattern))
+            // lp vs rp
+            else if (Regex.IsMatch(prev, lpPattern) || Regex.IsMatch(prev, opPattern))
             {
                 throw new FormulaFormatException("Not closing with number, variable, or closing parenthesis");
             }
@@ -143,15 +144,19 @@ namespace Formulas
                     Double current;
                     if (Regex.IsMatch(t, varPattern))
                     {
-                        try
+
+                        if (Double.TryParse(t, out current)) { }
+                        else
                         {
-                            current = lookup(t);
-                        }
-                        catch (UndefinedVariableException)
-                        {
-                            throw new FormulaEvaluationException("Undefined value");
-                        }
-                        
+                            try
+                            {
+                                current = lookup(t);
+                            }
+                            catch (UndefinedVariableException)
+                            {
+                                throw new FormulaEvaluationException("Undefined value");
+                            }
+                        }                        
                     }
                     else
                     {
@@ -203,7 +208,7 @@ namespace Formulas
                             Double l = valueStack.Pop();
                             valueStack.Push(l + r);
                         }
-                        else if (op == "+")
+                        else if (op == "-")
                         {
                             Double r = valueStack.Pop();
                             Double l = valueStack.Pop();
@@ -227,7 +232,7 @@ namespace Formulas
                         Double r = valueStack.Pop();
                         Double l = valueStack.Pop();
                         if (op == "+")
-                        {
+                        {                     
                             valueStack.Push(l + r);
                         }
                         else if (op == "-")
@@ -236,8 +241,9 @@ namespace Formulas
                         }
                         operatorStack.Pop();
                     }
+                    // in case of the operatorStack count being 1 and it being popped off
+                    Boolean popped = operatorStack.Count > 0 ? true : false;
                     
-
                     if (operatorStack.Count > 0 && (op = operatorStack.Pop()) == "*" || op == "/")
                     {
                         Double r = valueStack.Pop();
@@ -260,7 +266,7 @@ namespace Formulas
                         }
 
                     }
-                    else if (operatorStack.Count > 0)
+                    else if (operatorStack.Count > 0 || popped)
                     {
                         operatorStack.Push(op);
                     }
@@ -277,7 +283,7 @@ namespace Formulas
 
             Double right = valueStack.Pop();
             Double left = valueStack.Pop();
-            return right - left;
+            return left - right;
         }
 
         /// <summary>
