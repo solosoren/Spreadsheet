@@ -31,6 +31,7 @@ namespace GradingTests
             }
 
             [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
             public void TestNullConstruction()
             {
                 DependencyGraph t = new DependencyGraph(null);
@@ -38,10 +39,99 @@ namespace GradingTests
 
 
             [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
             public void Test()
             {
                 DependencyGraph t = new DependencyGraph();
                 t.AddDependency(null, "b");
+            }
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependees1()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.RemoveDependency(null, "b");
+            }
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependents3()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.RemoveDependency("a", null);
+            }
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependees2()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.ReplaceDependees(null, new HashSet<string>());
+            }
+
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependees3()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.ReplaceDependees("a", null);
+            }
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependees4()
+            {
+                DependencyGraph t = new DependencyGraph();
+                foreach (string s in t.GetDependees(null))
+                {
+                    int a = 0;
+                }
+            }
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependees5()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.HasDependees(null);
+            }
+
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependents1()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.ReplaceDependents(null, new HashSet<string>());
+            }
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependents2()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.ReplaceDependents("a", null);
+            }
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependents4()
+            {
+                DependencyGraph t = new DependencyGraph();
+                foreach (string s in t.GetDependents(null))
+                {
+                    int a = 0;
+                }
+            }
+
+            [TestMethod()]
+            [ExpectedException(typeof(ArgumentNullException))]
+            public void TestNullDependents5()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.HasDependents(null);
             }
 
             /// <summary>

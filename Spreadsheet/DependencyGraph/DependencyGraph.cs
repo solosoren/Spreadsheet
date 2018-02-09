@@ -70,8 +70,17 @@ namespace Dependencies
             size = 0;
         }
 
+        /// <summary>
+        /// creates a new DG by copying a passed in DG.
+        /// Throws ArgumentNullException if DG is null
+        /// </summary>
+        /// <param name="dg"></param>
         public DependencyGraph(DependencyGraph dg) : this()
         {
+            if (dg == null)
+            {
+                throw new ArgumentNullException();
+            }
             foreach (KeyValuePair<string, HashSet<string>> pair in dg.dependees) {
                 dependees.Add(pair.Key, pair.Value);
             }
