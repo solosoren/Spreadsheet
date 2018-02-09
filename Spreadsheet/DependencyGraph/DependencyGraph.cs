@@ -99,10 +99,13 @@ namespace Dependencies
         /// </summary>
         public IEnumerable<string> GetDependents(string s)
         {
-            HashSet<string> values = dependents[s];
-            foreach (string dependent in values)
+            if (dependents.ContainsKey(s))
             {
-                yield return dependent;
+                HashSet<string> values = dependents[s];
+                foreach (string dependent in values)
+                {
+                    yield return dependent;
+                }
             }
         }
 
@@ -111,11 +114,15 @@ namespace Dependencies
         /// </summary>
         public IEnumerable<string> GetDependees(string s)
         {
-            HashSet<string> values = dependees[s];
-            foreach (string dependee in values)
+            if (dependees.ContainsKey(s))
             {
-                yield return dependee;
+                HashSet<string> values = dependees[s];
+                foreach (string dependee in values)
+                {
+                    yield return dependee;
+                }
             }
+            
         }
 
         /// <summary>
@@ -125,6 +132,10 @@ namespace Dependencies
         /// </summary>
         public void AddDependency(string s, string t)
         {
+            if (!GetDependees(t).Contains(s))
+            {
+                size++;
+            }
             if (dependents.ContainsKey(s)) { dependents[s].Add(t);
             }
             else
@@ -139,11 +150,9 @@ namespace Dependencies
             else
             {
                 HashSet<string> set = new HashSet<string>();
-                set.Add(t);
+                set.Add(s);
                 dependees.Add(t, set);
             }
-
-            size++;
         }
 
         /// <summary>
@@ -154,8 +163,25 @@ namespace Dependencies
         public void RemoveDependency(string s, string t)
         {
             if (dependents.ContainsKey(s) && dependents[s].Contains(t)) {
-                dependents[s].Remove(t);
-                dependees[t].Remove(s);
+                
+                if (dependents[s].Count == 1)
+                {
+                    dependents.Remove(s);
+                }
+                else
+                {
+                    dependents[s].Remove(t);
+                }
+                
+                if (dependees[t].Count == 1)
+                {
+                    dependees.Remove(t);
+                }
+                else
+                {
+                    dependees[t].Remove(s);
+                }
+
                 size--;
             }
         }
