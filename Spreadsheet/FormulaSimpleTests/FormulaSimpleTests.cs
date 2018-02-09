@@ -32,7 +32,7 @@ namespace FormulaTestCases
         /// This is another syntax error
         /// </summary>
         [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [ExpectedException(typeof(Exception))]
         public void Construct2()
         {
             Formula f = new Formula(null);
