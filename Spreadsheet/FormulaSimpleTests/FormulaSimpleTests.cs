@@ -22,20 +22,20 @@ namespace FormulaTestCases
         /// in a FormulaFormatException.
         /// </summary>
         [TestMethod]
-        [ExpectedException(typeof(FormulaFormatException))]
         public void Construct1()
-        {
-            Formula f = new Formula("_");
+        { 
+            Formula f = new Formula("(3 + a2)", s => s.ToUpper(), s=> true);
+            Formula g = new Formula(f.ToString());
         }
 
         /// <summary>
         /// This is another syntax error
         /// </summary>
         [TestMethod]
-        [ExpectedException(typeof(FormulaFormatException))]
+        [ExpectedException(typeof(ArgumentNullException))]
         public void Construct2()
         {
-            Formula f = new Formula("2++3");
+            Formula f = new Formula(null);
         }
 
         /// <summary>

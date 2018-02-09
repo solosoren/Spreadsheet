@@ -15,7 +15,7 @@ namespace Formulas
     /// the four binary operator symbols +, -, *, and /.  (The unary operators + and -
     /// are not allowed.)
     /// </summary>
-    public class Formula
+    public struct Formula
     {
 
         private Stack<String> operatorStack;
@@ -42,8 +42,14 @@ namespace Formulas
         /// If the formula is syntacticaly invalid, throws a FormulaFormatException with an 
         /// explanatory Message.
         /// </summary>
-        public Formula(String formula)
+        public Formula(String formula) : this(formula, s => s, s => true) { }
+
+        public Formula(String formula, Normalizer normalizer, Validator validator)
         {
+            if (formula == null || normalizer == null || validator == null)
+            {
+                throw new ArgumentNullException();
+            }
             operatorStack = new Stack<string>();
             valueStack = new Stack<Double>();
             strings = GetTokens(formula);
@@ -57,10 +63,10 @@ namespace Formulas
             String varPattern = @"[a-zA-Z][0-9a-zA-Z]*";
             String doublePattern = @"(?:\d+\.\d*|\d*\.\d+|\d+)(?:e[\+-]?\d+)?";
             String spacePattern = @"\s+";
-            
+
             foreach (String s in strings)
             {
-            
+
                 if (prev == "" && Regex.IsMatch(s, opPattern) || prev == "" && Regex.IsMatch(s, rpPattern))
                 {
                     throw new FormulaFormatException("Not starting with a number, variable, or open parenthesis");
@@ -119,8 +125,44 @@ namespace Formulas
             {
                 throw new FormulaFormatException("Not closing with number, variable, or closing parenthesis");
             }
-
+            
+            string normal = "";
+            foreach (string s in strings)
+            {
+                string temp = normalizer(String.Copy(s));
+                if (!validator(temp))
+                {
+                    throw new FormulaFormatException("Not valid according to validator");
+                }
+                normal = normal + temp;
+            }
+            strings = GetTokens(normal);  
         }
+
+        private ISet<string> GetVariables()
+        {
+            ISet<string> set = new SortedSet<string>();
+            String varPattern = @"[a-zA-Z][0-9a-zA-Z]*";
+            foreach (string s in strings)
+            {
+                if (Regex.IsMatch(s, varPattern))
+                {
+                    set.Add(s);
+                }
+            }
+            return set;
+        }
+
+        public override string ToString()
+        {
+            string temp = "";
+            foreach (string s in strings)
+            {
+                temp = temp + s;
+            }
+            return temp;
+        }
+
         /// <summary>
         /// Evaluates this Formula, using the Lookup delegate to determine the values of variables.  (The
         /// delegate takes a variable name as a parameter and returns its value (if it has one) or throws
@@ -132,7 +174,10 @@ namespace Formulas
         /// </summary>
         public double Evaluate(Lookup lookup)
         {
-
+            if (lookup == null)
+            {
+                throw new ArgumentNullException();
+            }
             String op = "";
             String varPattern = @"[a-zA-Z][0-9a-zA-Z]*";
             String doublePattern = @"(?:\d+\.\d*|\d*\.\d+|\d+)(?:e[\+-]?\d+)?";
@@ -338,6 +383,10 @@ namespace Formulas
     /// don't is up to the implementation of the method.
     /// </summary>
     public delegate double Lookup(string var);
+
+    public delegate string Normalizer(string s);
+
+    public delegate bool Validator(string s);
 
     /// <summary>
     /// Used to report that a Lookup delegate is unable to determine the value
