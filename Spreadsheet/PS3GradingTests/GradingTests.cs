@@ -17,6 +17,32 @@ namespace GradingTests
         public class DependencyGraphTest
         {
             // ************************** TESTS ON EMPTY DGs ************************* //
+            /// <summary>
+            /// Test DependencyGraph(DG) against DG
+            /// </summary>
+            [TestMethod()]
+            public void TestDG()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.AddDependency("a", "b");
+                DependencyGraph x = new DependencyGraph(t);
+                x.RemoveDependency("a", "b");
+                Assert.AreNotEqual(t, x);
+            }
+
+            [TestMethod()]
+            public void TestNullConstruction()
+            {
+                DependencyGraph t = new DependencyGraph(null);
+            }
+
+
+            [TestMethod()]
+            public void Test()
+            {
+                DependencyGraph t = new DependencyGraph();
+                t.AddDependency(null, "b");
+            }
 
             /// <summary>
             ///Empty graph should contain nothing
