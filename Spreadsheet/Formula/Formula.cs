@@ -139,7 +139,11 @@ namespace Formulas
             strings = GetTokens(normal);  
         }
 
-        private ISet<string> GetVariables()
+        /// <summary>
+        /// Loops through the formula and finds the variables.
+        /// </summary>
+        /// <returns> A sorted set of all the variables in the formula</returns>
+        public ISet<string> GetVariables()
         {
             ISet<string> set = new SortedSet<string>();
             String varPattern = @"[a-zA-Z][0-9a-zA-Z]*";
@@ -153,6 +157,10 @@ namespace Formulas
             return set;
         }
 
+        /// <summary>
+        /// Overrides the toString() to return the formula in string format
+        /// </summary>
+        /// <returns>the formula as a string</returns>
         public override string ToString()
         {
             string temp = "";
@@ -384,8 +392,18 @@ namespace Formulas
     /// </summary>
     public delegate double Lookup(string var);
 
+    /// <summary>
+    /// normalizes the passed in formula into the wanted form.
+    /// </summary>
+    /// <param name="s"></param>
+    /// <returns></returns>
     public delegate string Normalizer(string s);
 
+    /// <summary>
+    /// Imposes extra restrictions on the validity of a variable 
+    /// </summary>
+    /// <param name="s"></param>
+    /// <returns>Whether the formula is able to be validated</returns>
     public delegate bool Validator(string s);
 
     /// <summary>

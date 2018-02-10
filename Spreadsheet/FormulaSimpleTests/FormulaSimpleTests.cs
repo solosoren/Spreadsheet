@@ -26,13 +26,25 @@ namespace FormulaTestCases
         { 
             Formula f = new Formula("(3 + a2)", s => s.ToUpper(), s=> true);
             Formula g = new Formula(f.ToString());
+            f.GetVariables();
+        }
+
+        /// <summary>
+        /// Evaluate null
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentNullException))]
+        public void nullEvaluate()
+        {
+            Formula f = new Formula("a + b");
+            double d = f.Evaluate(null);
         }
 
         /// <summary>
         /// This is another syntax error
         /// </summary>
         [TestMethod]
-        [ExpectedException(typeof(Exception))]
+        [ExpectedException(typeof(ArgumentNullException))]
         public void Construct2()
         {
             Formula f = new Formula(null);
