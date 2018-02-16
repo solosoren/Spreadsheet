@@ -81,14 +81,26 @@ namespace Dependencies
             {
                 throw new ArgumentNullException();
             }
-            foreach (KeyValuePair<string, HashSet<string>> pair in dg.dependees) {
-                dependees.Add(pair.Key, pair.Value);
+            
+            foreach (KeyValuePair<string, HashSet<string>> pair in dg.dependees)
+            {
+                HashSet<string> temp = new HashSet<string>();
+                foreach (String s in pair.Value)
+                {
+                    temp.Add(s);
+                }
+                this.dependees.Add(String.Copy(pair.Key), temp);
             }
             foreach (KeyValuePair<string, HashSet<string>> pair in dg.dependents)
             {
-                dependents.Add(pair.Key, pair.Value);
+                HashSet<string>  temp = new HashSet<string>();
+                foreach (String s in pair.Value)
+                {
+                    temp.Add(s);
+                }
+                this.dependents.Add(String.Copy(pair.Key), temp);
             }
-            size = dg.size;
+            size = 0 + dg.size;
         }
 
         /// <summary>
