@@ -46,13 +46,18 @@ namespace Formulas
 
         public Formula(String formula, Normalizer normalizer, Validator validator)
         {
-            if (formula == null || normalizer == null || validator == null)
+            if (formula == null && normalizer == null && validator == null)
             {
-                throw new ArgumentNullException();
+                formula = "0";
             }
             operatorStack = new Stack<string>();
             valueStack = new Stack<Double>();
             strings = GetTokens(formula);
+
+            if (formula == null || normalizer == null || validator == null)
+            {
+                throw new ArgumentNullException();
+            }
 
             int parenthesis = 0;
             String prev = "";
@@ -129,7 +134,15 @@ namespace Formulas
             string normal = "";
             foreach (string s in strings)
             {
-                string temp = normalizer(String.Copy(s));
+                string temp = s;
+                if (Regex.IsMatch(s, varPattern))
+                {
+                    if (!Regex.IsMatch(temp = normalizer(String.Copy(s)), varPattern))
+                    {
+                        throw new FormulaFormatException("Normalizer changed variable to invalid term");
+                    }
+
+                }
                 if (!validator(temp))
                 {
                     throw new FormulaFormatException("Not valid according to validator");
@@ -149,10 +162,12 @@ namespace Formulas
             String varPattern = @"[a-zA-Z][0-9a-zA-Z]*";
             foreach (string s in strings)
             {
-                if (Regex.IsMatch(s, varPattern))
+                if (Double.TryParse(s, out Double current)) { continue; }
+                else if (Regex.IsMatch(s, varPattern))
                 {
                     set.Add(s);
                 }
+                
             }
             return set;
         }
