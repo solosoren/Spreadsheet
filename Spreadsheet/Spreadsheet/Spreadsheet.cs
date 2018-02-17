@@ -84,8 +84,11 @@ namespace Spreadsheet
                     }
                 }
             }
+            else
+            {
+                cells.Add(name, number);
+            }
 
-            cells.Add(name, number);
             set.Add(name);
 
             if (dependencyGraph.HasDependees(name))
@@ -128,8 +131,12 @@ namespace Spreadsheet
                     }
                 }
             }
+            else
+            {
+                cells.Add(name, text);
+            }
 
-            cells.Add(name, text);
+            
             set.Add(name);
 
             if (dependencyGraph.HasDependees(name))
@@ -168,13 +175,6 @@ namespace Spreadsheet
             if (cells.ContainsKey(name))
             {
                 cells[name] = formula;
-                if (dependencyGraph.HasDependees(name))
-                {
-                    foreach (string dependee in dependencyGraph.GetDependees(name))
-                    {
-                        dependencyGraph.RemoveDependency(name, dependee);
-                    }
-                }
 
                 ISet<string> vars = formula.GetVariables();
                 dependencyGraph.ReplaceDependees(name, vars);
@@ -187,6 +187,10 @@ namespace Spreadsheet
                     }
                 }
             }
+            else
+            {
+                cells.Add(name, formula);
+            }
 
             HashSet<string> tempSet = new HashSet<string>();
             foreach (string dependent in GetDirectDependents(name))
@@ -198,6 +202,11 @@ namespace Spreadsheet
             return set;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="dependent"></param>
+        /// <returns></returns>
         public HashSet<string> GetIndirectDependents(string dependent)
         {
             
@@ -207,9 +216,11 @@ namespace Spreadsheet
                 set.Add(dependent);
                 if (dependencyGraph.HasDependents(dependent))
                 {
-
+                    GetIndirectDependents(dependent);
                 }
             }
+
+            return set;
             
         }
      
