@@ -135,7 +135,6 @@ namespace Spreadsheet
             {
                 cells.Add(name, text);
             }
-
             
             set.Add(name);
 

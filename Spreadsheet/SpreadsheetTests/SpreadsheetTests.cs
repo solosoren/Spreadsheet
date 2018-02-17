@@ -54,7 +54,7 @@ namespace SpreadsheetTests
         }
 
         /// <summary>
-        /// checks set cell contents with formula
+        /// checks set cell contents with formula circle
         /// </summary>
         [TestMethod]
         [ExpectedException(typeof(CircularException))]
@@ -66,6 +66,29 @@ namespace SpreadsheetTests
 
             Formula b = new Formula("A1 + b2");
             ss.SetCellContents("a1", b);
+
+        }
+
+        /// <summary>
+        /// checks set cell contents with deeper formula circle
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(CircularException))]
+        public void TestGetCellContents5()
+        {
+            AbstractSpreadsheet ss = new Spreadsheet.Spreadsheet();
+
+            Formula b2 = new Formula("b1 + b3");
+            ss.SetCellContents("b2", 2);
+
+            Formula a = new Formula("b2 + 2");
+            ss.SetCellContents("A1", a);
+
+            Formula b = new Formula("A1 + c2");
+            ss.SetCellContents("a1", b);
+
+            Formula c = new Formula("a1");
+            ss.SetCellContents("b1", b);
 
         }
 
