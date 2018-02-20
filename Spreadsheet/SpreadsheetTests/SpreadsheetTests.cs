@@ -79,7 +79,7 @@ namespace SpreadsheetTests
             AbstractSpreadsheet ss = new Spreadsheet.Spreadsheet();
 
             Formula b2 = new Formula("b1 + b3");
-            ss.SetCellContents("b2", 2);
+            ss.SetCellContents("b2", b2);
 
             Formula a = new Formula("b2 + 2");
             ss.SetCellContents("A1", a);
@@ -88,7 +88,7 @@ namespace SpreadsheetTests
             ss.SetCellContents("a1", b);
 
             Formula c = new Formula("a1");
-            ss.SetCellContents("b1", b);
+            ss.SetCellContents("b1", c);
 
         }
 
