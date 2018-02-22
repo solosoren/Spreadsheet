@@ -1,6 +1,7 @@
 ﻿using Formulas;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.RegularExpressions;
 
 namespace SS
@@ -14,15 +15,71 @@ namespace SS
 
         private Dictionary<String, Object> cells;
         private Dependencies.DependencyGraph dependencyGraph;
+        private Regex isValid;
 
         /// <summary>
-        /// Creates an empty spreadsheet.
+        /// True if this spreadsheet has been modified since it was created or saved
+        /// (whichever happened most recently); false otherwise.
+        /// </summary>
+        public override bool Changed { get; protected set; }
+
+
+        /// <summary>
+        /// Creates an empty Spreadsheet whose IsValid regular expression accepts every string
         /// </summary>
         public Spreadsheet()
         {
             cells = new Dictionary<string, object>();
             dependencyGraph = new Dependencies.DependencyGraph();
         }
+
+        /// <summary>
+        /// Creates an empty Spreadsheet whose IsValid regular expression is provided as the parameter
+        /// </summary>
+        public Spreadsheet(Regex isValid) :this()
+        {
+            this.isValid = isValid;
+        }
+
+        /// <summary>
+        /// Creates a Spreadsheet that is a duplicate of the spreadsheet saved in source.
+        ///
+        /// See the AbstractSpreadsheet.Save method and Spreadsheet.xsd for the file format 
+        /// specification.  
+        ///
+        /// If there's a problem reading source, throws an IOException.
+        ///
+        /// Else if the contents of source are not consistent with the schema in Spreadsheet.xsd, 
+        /// throws a SpreadsheetReadException.  
+        ///
+        /// Else if the IsValid string contained in source is not a valid C# regular expression, throws
+        /// a SpreadsheetReadException.  (If the exception is not thrown, this regex is referred to
+        /// below as oldIsValid.)
+        ///
+        /// Else if there is a duplicate cell name in the source, throws a SpreadsheetReadException.
+        /// (Two cell names are duplicates if they are identical after being converted to upper case.)
+        ///
+        /// Else if there is an invalid cell name or an invalid formula in the source, throws a 
+        /// SpreadsheetReadException.  (Use oldIsValid in place of IsValid in the definition of 
+        /// cell name validity.)
+        ///
+        /// Else if there is an invalid cell name or an invalid formula in the source, throws a
+        /// SpreadsheetVersionException.  (Use newIsValid in place of IsValid in the definition of
+        /// cell name validity.)
+        ///
+        /// Else if there's a formula that causes a circular dependency, throws a SpreadsheetReadException. 
+        ///
+        /// Else, create a Spreadsheet that is a duplicate of the one encoded in source except that
+        /// the new Spreadsheet's IsValid regular expression should be newIsValid.
+        /// </summary>
+        public Spreadsheet(TextReader source, Regex newIsValid) :this()
+        {
+
+
+
+            
+        }
+
 
         /// <summary>
         /// Returns names of all the used cells.
@@ -65,7 +122,7 @@ namespace SS
         /// For example, if name is A1, B1 contains A1*2, and C1 contains B1+A1, the
         /// set {A1, B1, C1} is returned.
         /// </summary>
-        public override ISet<string> SetCellContents(string name, double number)
+        protected override ISet<string> SetCellContents(string name, double number)
         {
             if (name == null || !IsValid(name)) { throw new InvalidNameException(); }
 
@@ -118,7 +175,7 @@ namespace SS
         /// For example, if name is A1, B1 contains A1*2, and C1 contains B1+A1, the
         /// set {A1, B1, C1} is returned.
         /// </summary>
-        public override ISet<string> SetCellContents(string name, string text)
+        protected override ISet<string> SetCellContents(string name, string text)
         {
             if (text == null) { throw new ArgumentNullException(); }
             if (name == null || !IsValid(name)) { throw new InvalidNameException(); }
@@ -176,7 +233,7 @@ namespace SS
         /// For example, if name is A1, B1 contains A1*2, and C1 contains B1+A1, the
         /// set {A1, B1, C1} is returned.
         /// </summary>
-        public override ISet<string> SetCellContents(string name, Formula formula)
+        protected override ISet<string> SetCellContents(string name, Formula formula)
         { 
             if (name == null || !IsValid(name)) { throw new InvalidNameException(); }
 
@@ -222,7 +279,10 @@ namespace SS
             }
             set.UnionWith(tempSet);
 
-            GetCellsToRecalculate(set);
+            foreach (string s in GetCellsToRecalculate(set))
+            {
+                SetContentsOfCell(name, GetCellValue(name).ToString());
+            }
 
             return set;
         }
@@ -232,7 +292,7 @@ namespace SS
         /// </summary>
         /// <param name="dependee"></param>
         /// <returns></returns>
-        public HashSet<string> GetIndirectDependees(string dependee)
+        private HashSet<string> GetIndirectDependees(string dependee)
         {
             HashSet<string> set = new HashSet<string>();
             
@@ -250,12 +310,12 @@ namespace SS
         }
      
        /// <summary>
-       /// recursively checks whether the given target has a circular dependency
+       /// Recursively checks whether the given target has a circular dependency
        /// </summary>
        /// <param name="dependee"></param>
        /// <param name="target"></param>
        /// <returns></returns>
-        public Boolean IsACircle(string dependee, string target)
+        private Boolean IsACircle(string dependee, string target)
         {
             foreach (string s in dependencyGraph.GetDependents(dependee))
             {
@@ -301,8 +361,128 @@ namespace SS
             return dependencyGraph.GetDependents(name);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         private Boolean IsValid(String name) {
             return Regex.IsMatch(name, @"[a-zA-Z]+[0-9]+");
+        }
+
+
+        /// <summary>
+        /// Writes the contents of this spreadsheet to dest using an XML format.
+        /// The XML elements should be structured as follows:
+        ///
+        /// <spreadsheet IsValid="IsValid regex goes here">
+        ///   <cell name="cell name goes here" contents="cell contents go here"></cell>
+        ///   <cell name="cell name goes here" contents="cell contents go here"></cell>
+        ///   <cell name="cell name goes here" contents="cell contents go here"></cell>
+        /// </spreadsheet>
+        ///
+        /// The value of the IsValid attribute should be IsValid.ToString()
+        /// 
+        /// There should be one cell element for each non-empty cell in the spreadsheet.
+        /// If the cell contains a string, the string (without surrounding double quotes) should be written as the contents.
+        /// If the cell contains a double d, d.ToString() should be written as the contents.
+        /// If the cell contains a Formula f, f.ToString() with "=" prepended should be written as the contents.
+        ///
+        /// If there are any problems writing to dest, the method should throw an IOException.
+        /// </summary>
+        public override void Save(TextWriter dest)
+        {
+            try
+            {
+
+
+            }
+            catch (Exception e)
+            {
+
+
+
+            }
+        }
+
+        /// <summary>
+        /// If name is null or invalid, throws an InvalidNameException.
+        ///
+        /// Otherwise, returns the value (as opposed to the contents) of the named cell.  The return
+        /// value should be either a string, a double, or a FormulaError.
+        /// </summary>
+        public override object GetCellValue(string name)
+        {
+            if (name.Equals(null) || !IsValid(name) || !isValid.IsMatch(name.ToUpper()) { throw new InvalidNameException(); }
+
+            Object contents = GetCellContents(name);
+            if (contents is Formula)
+            {
+                Formula formula = (Formula)contents;
+                formula.Evaluate(s => GetCellValue(s));
+
+            }
+            else if (contents is double)
+            {
+                return (double)contents;
+            }
+            else
+            {
+                return (string)contents;
+            }
+        }
+
+        /// <summary>
+        /// If content is null, throws an ArgumentNullException.
+        ///
+        /// Otherwise, if name is null or invalid, throws an InvalidNameException.
+        ///
+        /// Otherwise, if content parses as a double, the contents of the named
+        /// cell becomes that double.
+        ///
+        /// Otherwise, if content begins with the character '=', an attempt is made
+        /// to parse the remainder of content into a Formula f using the Formula
+        /// constructor with s => s.ToUpper() as the normalizer and a validator that
+        /// checks that s is a valid cell name as defined in the AbstractSpreadsheet
+        /// class comment.  There are then three possibilities:
+        ///
+        ///   (1) If the remainder of content cannot be parsed into a Formula, a
+        ///       Formulas.FormulaFormatException is thrown.
+        ///
+        ///   (2) Otherwise, if changing the contents of the named cell to be f
+        ///       would cause a circular dependency, a CircularException is thrown.
+        ///
+        ///   (3) Otherwise, the contents of the named cell becomes f.
+        ///
+        /// Otherwise, the contents of the named cell becomes content.
+        ///
+        /// If an exception is not thrown, the method returns a set consisting of
+        /// name plus the names of all other cells whose value depends, directly
+        /// or indirectly, on the named cell.
+        ///
+        /// For example, if name is A1, B1 contains A1*2, and C1 contains B1+A1, the
+        /// set {A1, B1, C1} is returned.
+        /// </summary>
+        public override ISet<string> SetContentsOfCell(string name, string content)
+        {
+            if (content == null) { throw new ArgumentNullException(); }
+            if (name == null || !IsValid(name) || !isValid.IsMatch(name.ToUpper())) { throw new InvalidNameException(); }
+
+            // double
+            if (double.TryParse(content, out double doubleContents))
+            {
+                return SetCellContents(name, doubleContents);
+            }
+            
+            // formula
+            if (content.StartsWith("="))
+            {
+                Formula formula = new Formula(content.Substring(1), s => s.ToUpper(), s => IsValid(name));
+                return SetCellContents(name, formula);
+            }
+
+            // string
+            return SetCellContents(name, content);
         }
     }
 }
