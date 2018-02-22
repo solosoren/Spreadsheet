@@ -1,4 +1,5 @@
 ﻿using SS;
+using Formulas;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,7 @@ namespace GradingTests
         [ExpectedException(typeof(InvalidNameException))]
         public void Test1()
         {
-            AbstractSpreadsheet s = new Spreadsheet.Spreadsheet();
+            AbstractSpreadsheet s = new Spreadsheet();
             s.GetCellContents(null);
         }
 

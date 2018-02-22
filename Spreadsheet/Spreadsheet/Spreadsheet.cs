@@ -1,14 +1,9 @@
 ﻿using Formulas;
-using SS;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections;
 using System.Text.RegularExpressions;
 
-namespace Spreadsheet
+namespace SS
 {
     /// <summary>
     /// Creates a spreadsheet
@@ -37,7 +32,10 @@ namespace Spreadsheet
         {
             foreach (KeyValuePair<String, Object> pair in cells)
             {
-                yield return pair.Key;
+                if (pair.Value != "")
+                {
+                    yield return pair.Key;
+                }
             }
         }
 
@@ -78,7 +76,12 @@ namespace Spreadsheet
                 cells[name] = number;
                 if (dependencyGraph.HasDependents(name))
                 {
+                    HashSet<string> temp = new HashSet<string>();
                     foreach (string dependent in dependencyGraph.GetDependents(name))
+                    {
+                        temp.Add(dependent);
+                    }
+                    foreach (string dependent in temp)
                     {
                         dependencyGraph.RemoveDependency(name, dependent);
                     }
@@ -91,13 +94,15 @@ namespace Spreadsheet
 
             set.Add(name);
 
-            if (dependencyGraph.HasDependees(name))
+            HashSet<string> tempSet = new HashSet<string>();
+            foreach (string dependee in dependencyGraph.GetDependees(name))
             {
-                foreach (string dependee in dependencyGraph.GetDependees(name))
-                {
-                    set.Add(dependee);
-                }
+                tempSet.Add(dependee);
+                tempSet.UnionWith(GetIndirectDependees(dependee));
             }
+            set.UnionWith(tempSet);
+
+            GetCellsToRecalculate(set);
             return set;
         }
 
@@ -125,7 +130,12 @@ namespace Spreadsheet
                 cells[name] = text;
                 if (dependencyGraph.HasDependents(name))
                 {
+                    HashSet<string> temp = new HashSet<string>();
                     foreach (string dependent in dependencyGraph.GetDependents(name))
+                    {
+                        temp.Add(dependent);
+                    }
+                    foreach (string dependent in temp)
                     {
                         dependencyGraph.RemoveDependency(name, dependent);
                     }
@@ -138,13 +148,16 @@ namespace Spreadsheet
             
             set.Add(name);
 
-            if (dependencyGraph.HasDependees(name))
+            HashSet<string> tempSet = new HashSet<string>();
+            foreach (string dependee in dependencyGraph.GetDependees(name))
             {
-                foreach (string dependee in dependencyGraph.GetDependees(name))
-                {
-                    set.Add(dependee);
-                }
+                tempSet.Add(dependee);
+                tempSet.UnionWith(GetIndirectDependees(dependee));
             }
+            set.UnionWith(tempSet);
+
+            GetCellsToRecalculate(set);
+
             return set;
         }
 
@@ -169,14 +182,12 @@ namespace Spreadsheet
 
             HashSet<string> set = new HashSet<string>();
             set.Add(name);
-            cells.Add(name, formula);
 
             if (cells.ContainsKey(name))
             {
-                cells[name] = formula;
-
+                
                 ISet<string> vars = formula.GetVariables();
-                dependencyGraph.ReplaceDependees(name, vars);
+                dependencyGraph.ReplaceDependents(name, vars);
 
                 foreach (string var in vars)
                 {   
@@ -185,37 +196,52 @@ namespace Spreadsheet
                         throw new CircularException();
                     }
                 }
+                cells[name] = formula;
             }
             else
             {
+                
+                ISet<string> vars = formula.GetVariables();
+                foreach (string s in vars)
+                {
+                    dependencyGraph.AddDependency(name, s);
+
+                    if (IsACircle(s, name))
+                    {
+                        throw new CircularException();
+                    }
+                }
                 cells.Add(name, formula);
             }
 
             HashSet<string> tempSet = new HashSet<string>();
-            foreach (string dependent in GetDirectDependents(name))
+            foreach (string dependee in dependencyGraph.GetDependees(name))
             {
-                tempSet = GetIndirectDependents(dependent);
+                tempSet.Add(dependee);
+                tempSet.UnionWith(GetIndirectDependees(dependee));
             }
             set.UnionWith(tempSet);
-            
+
+            GetCellsToRecalculate(set);
+
             return set;
         }
 
         /// <summary>
-        /// 
+        /// Returns the Indirect dependees of the given dependee
         /// </summary>
-        /// <param name="dependent"></param>
+        /// <param name="dependee"></param>
         /// <returns></returns>
-        public HashSet<string> GetIndirectDependents(string dependent)
+        public HashSet<string> GetIndirectDependees(string dependee)
         {
-            
             HashSet<string> set = new HashSet<string>();
-            foreach (string d in dependencyGraph.GetDependents(dependent))
+            
+            foreach (string d in dependencyGraph.GetDependees(dependee))
             {
-                set.Add(dependent);
-                if (dependencyGraph.HasDependents(dependent))
+                set.Add(d);
+                if (dependencyGraph.HasDependees(d))
                 {
-                    GetIndirectDependents(dependent);
+                   set.UnionWith(GetIndirectDependees(d));
                 }
             }
 
@@ -231,15 +257,13 @@ namespace Spreadsheet
        /// <returns></returns>
         public Boolean IsACircle(string dependee, string target)
         {
-            string d = String.Copy(dependee);
-            
-            foreach (string s in dependencyGraph.GetDependees(d))
+            foreach (string s in dependencyGraph.GetDependents(dependee))
             {
                 if (s == target)
                 {
                     return true;
                 }
-                if (dependencyGraph.HasDependees(s))
+                if (dependencyGraph.HasDependents(s))
                 {
                     if (IsACircle(s, target) == true)
                     {
@@ -277,6 +301,8 @@ namespace Spreadsheet
             return dependencyGraph.GetDependents(name);
         }
 
-        private Boolean IsValid(String name) { return Regex.IsMatch(name, @"[a-zA-Z][0-9a-zA-Z]*"); }
+        private Boolean IsValid(String name) {
+            return Regex.IsMatch(name, @"[a-zA-Z]+[0-9]+");
+        }
     }
 }
