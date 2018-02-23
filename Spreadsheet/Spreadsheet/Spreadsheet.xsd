@@ -10,7 +10,7 @@
           </xs:complexType>
         </xs:element>
       </xs:sequence>
-      <xs:attribute name="IsValid" type="xs:string" use="required" />
+      <xs:attribute name="isValid" type="xs:string" use="required" />
     </xs:complexType>
   </xs:element>
 </xs:schema>

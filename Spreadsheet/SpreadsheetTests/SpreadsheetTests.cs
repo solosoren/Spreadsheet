@@ -1,8 +1,10 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SS;
-using Spreadsheet;
 using Formulas;
+using System.IO;
+using System.Xml;
+using System.Text.RegularExpressions;
 
 namespace SpreadsheetTests
 {
@@ -15,7 +17,7 @@ namespace SpreadsheetTests
         [TestMethod]
         public void TestGetCellContentsEmptySpreadsheet()
         {
-            AbstractSpreadsheet ss = new Spreadsheet.Spreadsheet();
+            AbstractSpreadsheet ss = new Spreadsheet();
             Assert.AreEqual("", ss.GetCellContents("A1"));
         }
 
@@ -25,8 +27,8 @@ namespace SpreadsheetTests
         [TestMethod]
         public void TestGetCellContents1()
         {
-            AbstractSpreadsheet ss = new Spreadsheet.Spreadsheet();
-            ss.SetCellContents("A1", 2.0);
+            AbstractSpreadsheet ss = new Spreadsheet();
+            ss.SetContentsOfCell("A1", "2.0");
             Assert.AreEqual(2.0, ss.GetCellContents("A1"));
         }
 
@@ -36,8 +38,8 @@ namespace SpreadsheetTests
         [TestMethod]
         public void TestGetCellContents2()
         {
-            AbstractSpreadsheet ss = new Spreadsheet.Spreadsheet();
-            ss.SetCellContents("A1", "a");
+            AbstractSpreadsheet ss = new Spreadsheet();
+            ss.SetContentsOfCell("A1", "a");
             Assert.AreEqual("a", ss.GetCellContents("A1"));
         }
 
@@ -47,8 +49,8 @@ namespace SpreadsheetTests
         [TestMethod]
         public void TestGetCellContents3()
         {
-            AbstractSpreadsheet ss = new Spreadsheet.Spreadsheet();
-            ss.SetCellContents("A1", "a1 + b2");
+            AbstractSpreadsheet ss = new Spreadsheet();
+            ss.SetContentsOfCell("A1", "a1 + b2");
             
             Assert.AreEqual("a1 + b2", ss.GetCellContents("A1"));
         }
@@ -60,36 +62,43 @@ namespace SpreadsheetTests
         [ExpectedException(typeof(CircularException))]
         public void TestGetCellContents4()
         {
-            AbstractSpreadsheet ss = new Spreadsheet.Spreadsheet();
-            Formula a = new Formula("a1 + b2");
-            ss.SetCellContents("A1", a);
+            AbstractSpreadsheet ss = new Spreadsheet();
+            
+            ss.SetContentsOfCell("A1", "=(a1 + b2)");
 
-            Formula b = new Formula("A1 + b2");
-            ss.SetCellContents("a1", b);
+            ss.SetContentsOfCell("a1", "=(A1 + b2)");
 
         }
 
         /// <summary>
-        /// checks set cell contents with deeper formula circle
+        /// checks save
+        /// </summary>
+        [TestMethod]        
+        public void TestSaveContents1()
+        {
+            AbstractSpreadsheet ss = new Spreadsheet();
+
+            ss.SetContentsOfCell("b2", "5");
+
+            ss.SetContentsOfCell("A1", "=b2 + 2");
+
+            ss.SetContentsOfCell("a2", "=A1 + b2");
+
+            ss.SetContentsOfCell("b1", "=a2 - 10");
+
+            StreamWriter writer = File.CreateText("C:\\Users\\Soren\\source\\repos\\u0967837\\Spreadsheet\\Spreadsheet\\SampleSavedSpreadsheet.xml");
+            ss.Save(writer);
+        }
+
+        /// <summary>
+        /// Tests set spreadsheet from xml
         /// </summary>
         [TestMethod]
-        [ExpectedException(typeof(CircularException))]
-        public void TestGetCellContents5()
+        public void TestSpreadsheetFromXML()
         {
-            AbstractSpreadsheet ss = new Spreadsheet.Spreadsheet();
-
-            Formula b2 = new Formula("b1 + b3");
-            ss.SetCellContents("b2", b2);
-
-            Formula a = new Formula("b2 + 2");
-            ss.SetCellContents("A1", a);
-
-            Formula b = new Formula("A1 + c2");
-            ss.SetCellContents("a1", b);
-
-            Formula c = new Formula("a1");
-            ss.SetCellContents("b1", c);
-
+            StreamReader reader = File.OpenText("C:\\Users\\Soren\\source\\repos\\u0967837\\Spreadsheet\\Spreadsheet\\SampleSavedSpreadsheet.xml");
+            Regex regex = new Regex(@"[a-zA-Z]+[0-9]+");
+            AbstractSpreadsheet ss = new Spreadsheet(reader, regex);
         }
 
     }

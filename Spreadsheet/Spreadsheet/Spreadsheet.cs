@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Xml;
+using System.Xml.Schema;
 
 namespace SS
 {
@@ -31,6 +33,8 @@ namespace SS
         {
             cells = new Dictionary<string, object>();
             dependencyGraph = new Dependencies.DependencyGraph();
+            this.isValid = new Regex(".");
+            Changed = false;
         }
 
         /// <summary>
@@ -74,10 +78,82 @@ namespace SS
         /// </summary>
         public Spreadsheet(TextReader source, Regex newIsValid) :this()
         {
+            isValid = newIsValid;
+            string oldIsValid = @"."; 
+            XmlSchemaSet sc = new XmlSchemaSet();
+            sc.Add(null, "Spreadsheet.xsd");
 
+            XmlReaderSettings settings = new XmlReaderSettings();
+            settings.ValidationType = ValidationType.Schema;
+            settings.Schemas = sc;
 
+            try
+            {
+                using (XmlReader reader = XmlReader.Create(source, settings))
+                {
+                    while (reader.Read())
+                    {
+                        if (reader.IsStartElement())
+                        {
+                            switch (reader.Name)
+                            {
+                                case "spreadsheet":
+                                    break;
 
-            
+                                case "isValid":
+                                    oldIsValid = reader["regex"];
+                                    if (!Regex.IsMatch(oldIsValid, @"."))
+                                    {
+                                        throw new SpreadsheetReadException("Invalid isValid");
+                                    }
+                                    break;
+
+                                case "cell":
+                                    string name = reader["name"];
+                                    string contents = reader["contents"];
+                                    if (cells.ContainsKey(name.ToUpper())) { throw new SpreadsheetReadException("Multiple of the same cell"); }
+
+                                    if (Regex.IsMatch(name, oldIsValid))
+                                    {   
+                                        try
+                                        {
+                                            Formula f = new Formula(contents, s => s, s => Regex.IsMatch(s, oldIsValid));
+                                        }
+
+                                        catch (Exception) { throw new SpreadsheetReadException("Invalid Formula"); }
+                                        
+                                    } else { throw new SpreadsheetReadException("Invalid Cell Name"); }
+                                    
+                                    if (Regex.IsMatch(name, isValid.ToString()))
+                                    {
+                                        try
+                                        {
+                                            Formula f = new Formula(contents, s => s, s => Regex.IsMatch(s, isValid.ToString()));
+                                            
+                                        }
+
+                                        catch (Exception) { throw new SpreadsheetVersionException("Invalid Formula"); }
+
+                                    }
+                                    else { throw new SpreadsheetVersionException("Invalid Cell Name"); }
+
+                                    SetContentsOfCell(name, contents);
+
+                                    break;
+                            }
+                        }
+                    }
+                }  
+            }
+            catch (InvalidNameException i)
+            {
+                throw new SpreadsheetVersionException(i.Message);
+            }
+            catch (FormulaFormatException f)
+            {
+                throw new SpreadsheetVersionException(f.Message);
+            }
+
         }
 
 
@@ -87,11 +163,11 @@ namespace SS
         /// <returns></returns>
         public override IEnumerable<string> GetNamesOfAllNonemptyCells()
         {
-            foreach (KeyValuePair<String, Object> pair in cells)
+            foreach (string key in cells.Keys)
             {
-                if (pair.Value != "")
+                if (!(cells[key] is string s) || !(s == ""))
                 {
-                    yield return pair.Key;
+                    yield return key;
                 }
             }
         }
@@ -237,8 +313,7 @@ namespace SS
         { 
             if (name == null || !IsValid(name)) { throw new InvalidNameException(); }
 
-            HashSet<string> set = new HashSet<string>();
-            set.Add(name);
+            HashSet<string> set = new HashSet<string>{ name };
 
             if (cells.ContainsKey(name))
             {
@@ -281,7 +356,7 @@ namespace SS
 
             foreach (string s in GetCellsToRecalculate(set))
             {
-                SetContentsOfCell(name, GetCellValue(name).ToString());
+                SetContentsOfCell(s, GetCellValue(s).ToString());
             }
 
             return set;
@@ -367,7 +442,7 @@ namespace SS
         /// <param name="name"></param>
         /// <returns></returns>
         private Boolean IsValid(String name) {
-            return Regex.IsMatch(name, @"[a-zA-Z]+[0-9]+");
+            return Regex.IsMatch(name, isValid.ToString());
         }
 
 
@@ -394,14 +469,39 @@ namespace SS
         {
             try
             {
+                using (XmlWriter writer = XmlWriter.Create(dest))
+                {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("", "spreadsheet", "urn:spreadsheet-schema");
 
+                    writer.WriteAttributeString("IsValid", isValid.ToString());
 
+                    foreach (string s in GetNamesOfAllNonemptyCells())
+                    {
+                        writer.WriteStartElement("cell");
+                        writer.WriteAttributeString("name", s);
+                        object o = cells[s];
+                        if (o is Formula)
+                        {
+                            string f = "=" + o.ToString();
+                            writer.WriteAttributeString("contents", f);
+                        }
+                        else
+                        {
+                            writer.WriteAttributeString("contents", cells[s].ToString());
+                        }
+                        
+                        writer.WriteEndElement();
+                    }
+
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+                    Changed = false;
+                }
             }
-            catch (Exception e)
+            catch (Exception _)
             {
-
-
-
+                throw new IOException();
             }
         }
 
@@ -413,13 +513,21 @@ namespace SS
         /// </summary>
         public override object GetCellValue(string name)
         {
-            if (name.Equals(null) || !IsValid(name) || !isValid.IsMatch(name.ToUpper()) { throw new InvalidNameException(); }
+            if (name.Equals(null) || !IsValid(name) || !isValid.IsMatch(name.ToUpper())) { throw new InvalidNameException(); }
 
             Object contents = GetCellContents(name);
-            if (contents is Formula)
+            if (contents is Formula formula)
             {
-                Formula formula = (Formula)contents;
-                formula.Evaluate(s => GetCellValue(s));
+
+                ISet<string> set = formula.GetVariables();
+                foreach (string var in set)
+                {
+                    if (!cells.ContainsKey(var))
+                    {
+                        return new FormulaError("Variable " + var + " does not have a value yet");
+                    }
+                }
+                return formula.Evaluate(s => (double)cells[s]);
 
             }
             else if (contents is double)
@@ -467,7 +575,9 @@ namespace SS
         {
             if (content == null) { throw new ArgumentNullException(); }
             if (name == null || !IsValid(name) || !isValid.IsMatch(name.ToUpper())) { throw new InvalidNameException(); }
+            Changed = true;
 
+            name = name.ToUpper();
             // double
             if (double.TryParse(content, out double doubleContents))
             {

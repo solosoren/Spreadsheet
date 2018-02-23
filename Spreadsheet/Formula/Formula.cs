@@ -143,10 +143,11 @@ namespace Formulas
                     }
 
                 }
-                if (!validator(temp))
+                if (!double.TryParse(s, out double d) && !validator(temp))
                 {
                     throw new FormulaFormatException("Not valid according to validator");
                 }
+
                 normal = normal + temp;
             }
             strings = GetTokens(normal);  
