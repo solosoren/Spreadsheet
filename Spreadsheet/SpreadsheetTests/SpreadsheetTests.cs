@@ -59,15 +59,26 @@ namespace SpreadsheetTests
         /// checks set cell contents with formula circle
         /// </summary>
         [TestMethod]
-        [ExpectedException(typeof(CircularException))]
         public void TestGetCellContents4()
         {
             AbstractSpreadsheet ss = new Spreadsheet();
             
+            ss.SetContentsOfCell("A1", "=(5)");
+
+            ss.SetContentsOfCell("b1", "=(A1)");
+
+        }
+
+        /// <summary>
+        /// checks spreadsheet constructor
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(CircularException))]
+        public void TestGetCellContents5()
+        {
+            Regex regex = new Regex(@"[a-zA-Z]+[0-9]+");
+            AbstractSpreadsheet ss = new Spreadsheet(regex);
             ss.SetContentsOfCell("A1", "=(a1 + b2)");
-
-            ss.SetContentsOfCell("a1", "=(A1 + b2)");
-
         }
 
         /// <summary>
@@ -82,11 +93,37 @@ namespace SpreadsheetTests
 
             ss.SetContentsOfCell("A1", "=b2 + 2");
 
-            ss.SetContentsOfCell("a2", "=A1 + b2");
+            ss.SetContentsOfCell("a2", "=A1 + 42");
 
             ss.SetContentsOfCell("b1", "=a2 - 10");
 
             StreamWriter writer = File.CreateText("C:\\Users\\Soren\\source\\repos\\u0967837\\Spreadsheet\\Spreadsheet\\SampleSavedSpreadsheet.xml");
+            ss.Save(writer);
+        }
+
+        /// <summary>
+        /// checks save
+        /// </summary>
+        [TestMethod]
+        public void TestSaveContents2()
+        {
+            AbstractSpreadsheet ss = new Spreadsheet();
+
+            ss.SetContentsOfCell("b2", "5");
+
+            ss.SetContentsOfCell("A1", "=b2 + 2");
+
+            ss.SetContentsOfCell("a2", "=A1 + a1");
+
+            ss.SetContentsOfCell("a2", "Hello");
+
+            ss.SetContentsOfCell("a2", "=b2");
+
+            ss.SetContentsOfCell("b1", "=a2 + 55");
+
+            ss.SetContentsOfCell("b1", "3");
+
+            StreamWriter writer = File.CreateText("C:\\Users\\Soren\\source\\repos\\u0967837\\Spreadsheet\\Spreadsheet\\Spreadsheet.xml");
             ss.Save(writer);
         }
 
@@ -97,6 +134,17 @@ namespace SpreadsheetTests
         public void TestSpreadsheetFromXML()
         {
             StreamReader reader = File.OpenText("C:\\Users\\Soren\\source\\repos\\u0967837\\Spreadsheet\\Spreadsheet\\SampleSavedSpreadsheet.xml");
+            Regex regex = new Regex(@"[a-zA-Z]+[0-9]+");
+            AbstractSpreadsheet ss = new Spreadsheet(reader, regex);
+        }
+
+        /// <summary>
+        /// Tests set spreadsheet from xml
+        /// </summary>
+        [TestMethod]
+        public void TestSpreadsheetFromXML2()
+        {
+            StreamReader reader = File.OpenText("C:\\Users\\Soren\\source\\repos\\u0967837\\Spreadsheet\\Spreadsheet\\Spreadsheet.xml");
             Regex regex = new Regex(@"[a-zA-Z]+[0-9]+");
             AbstractSpreadsheet ss = new Spreadsheet(reader, regex);
         }

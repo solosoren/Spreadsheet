@@ -101,7 +101,7 @@ namespace SS
                                     break;
 
                                 case "isValid":
-                                    oldIsValid = reader["regex"];
+                                    oldIsValid = reader["isValid"];
                                     if (!Regex.IsMatch(oldIsValid, @"."))
                                     {
                                         throw new SpreadsheetReadException("Invalid isValid");
@@ -467,41 +467,44 @@ namespace SS
         /// </summary>
         public override void Save(TextWriter dest)
         {
-            try
+            if (Changed)
             {
-                using (XmlWriter writer = XmlWriter.Create(dest))
+                try
                 {
-                    writer.WriteStartDocument();
-                    writer.WriteStartElement("", "spreadsheet", "urn:spreadsheet-schema");
-
-                    writer.WriteAttributeString("IsValid", isValid.ToString());
-
-                    foreach (string s in GetNamesOfAllNonemptyCells())
+                    using (XmlWriter writer = XmlWriter.Create(dest))
                     {
-                        writer.WriteStartElement("cell");
-                        writer.WriteAttributeString("name", s);
-                        object o = cells[s];
-                        if (o is Formula)
-                        {
-                            string f = "=" + o.ToString();
-                            writer.WriteAttributeString("contents", f);
-                        }
-                        else
-                        {
-                            writer.WriteAttributeString("contents", cells[s].ToString());
-                        }
-                        
-                        writer.WriteEndElement();
-                    }
+                        writer.WriteStartDocument();
+                        writer.WriteStartElement("", "spreadsheet", "urn:spreadsheet-schema");
 
-                    writer.WriteEndElement();
-                    writer.WriteEndDocument();
-                    Changed = false;
+                        writer.WriteAttributeString("isValid", isValid.ToString());
+
+                        foreach (string s in GetNamesOfAllNonemptyCells())
+                        {
+                            writer.WriteStartElement("cell");
+                            writer.WriteAttributeString("name", s);
+                            object o = cells[s];
+                            if (o is Formula)
+                            {
+                                string f = "=" + o.ToString();
+                                writer.WriteAttributeString("contents", f);
+                            }
+                            else
+                            {
+                                writer.WriteAttributeString("contents", cells[s].ToString());
+                            }
+
+                            writer.WriteEndElement();
+                        }
+
+                        writer.WriteEndElement();
+                        writer.WriteEndDocument();
+                        Changed = false;
+                    }
                 }
-            }
-            catch (Exception _)
-            {
-                throw new IOException();
+                catch (Exception _)
+                {
+                    throw new IOException();
+                }
             }
         }
 
