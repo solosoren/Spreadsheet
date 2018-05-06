@@ -50,9 +50,10 @@
             this.fileToolStripMenuItem,
             this.helpToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
+            this.menuStrip1.MinimumSize = new System.Drawing.Size(0, 60);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Padding = new System.Windows.Forms.Padding(12, 4, 0, 4);
-            this.menuStrip1.Size = new System.Drawing.Size(1018, 44);
+            this.menuStrip1.Size = new System.Drawing.Size(1018, 60);
             this.menuStrip1.TabIndex = 1;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -64,7 +65,7 @@
             this.saveToolStripMenuItem,
             this.closeToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(64, 36);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(64, 52);
             this.fileToolStripMenuItem.Text = "File";
             // 
             // newToolStripMenuItem
@@ -101,7 +102,7 @@
             this.fileToolStripMenuItem1,
             this.spreadsheetToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(77, 36);
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(77, 52);
             this.helpToolStripMenuItem.Text = "Help";
             // 
             // fileToolStripMenuItem1
@@ -120,12 +121,14 @@
             // 
             // spreadsheetPanel1
             // 
-            this.spreadsheetPanel1.Location = new System.Drawing.Point(0, 52);
-            this.spreadsheetPanel1.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
+            this.spreadsheetPanel1.Dock = System.Windows.Forms.DockStyle.Top;
+            this.spreadsheetPanel1.Location = new System.Drawing.Point(0, 60);
+            this.spreadsheetPanel1.Margin = new System.Windows.Forms.Padding(6);
             this.spreadsheetPanel1.Name = "spreadsheetPanel1";
-            this.spreadsheetPanel1.Size = new System.Drawing.Size(998, 540);
+            this.spreadsheetPanel1.Size = new System.Drawing.Size(1018, 546);
             this.spreadsheetPanel1.TabIndex = 0;
             this.spreadsheetPanel1.TabStop = false;
+            this.spreadsheetPanel1.Load += new System.EventHandler(this.spreadsheetPanel1_Load);
             // 
             // cellValueTextBox
             // 
@@ -133,8 +136,8 @@
             this.cellValueTextBox.BackColor = System.Drawing.SystemColors.ControlLight;
             this.cellValueTextBox.Enabled = false;
             this.cellValueTextBox.ForeColor = System.Drawing.SystemColors.InfoText;
-            this.cellValueTextBox.Location = new System.Drawing.Point(160, 610);
-            this.cellValueTextBox.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
+            this.cellValueTextBox.Location = new System.Drawing.Point(30, 610);
+            this.cellValueTextBox.Margin = new System.Windows.Forms.Padding(6);
             this.cellValueTextBox.Name = "cellValueTextBox";
             this.cellValueTextBox.ReadOnly = true;
             this.cellValueTextBox.Size = new System.Drawing.Size(196, 31);
@@ -144,11 +147,11 @@
             // 
             // cellContentTextBox
             // 
-            this.cellContentTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.cellContentTextBox.Location = new System.Drawing.Point(684, 610);
-            this.cellContentTextBox.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
+            this.cellContentTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.cellContentTextBox.Location = new System.Drawing.Point(253, 610);
+            this.cellContentTextBox.Margin = new System.Windows.Forms.Padding(6);
             this.cellContentTextBox.Name = "cellContentTextBox";
-            this.cellContentTextBox.Size = new System.Drawing.Size(196, 31);
+            this.cellContentTextBox.Size = new System.Drawing.Size(657, 31);
             this.cellContentTextBox.TabIndex = 3;
             this.cellContentTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.cellContentTextBox_KeyDown);
             // 
@@ -162,7 +165,7 @@
             this.Controls.Add(this.spreadsheetPanel1);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
-            this.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
+            this.Margin = new System.Windows.Forms.Padding(6);
             this.MinimumSize = new System.Drawing.Size(1024, 681);
             this.Name = "SpreadsheetGUI";
             this.Text = "Spreadsheet";
@@ -181,7 +184,6 @@
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem closeToolStripMenuItem;
-        private SSGui.SpreadsheetPanel spreadsheetPanel1;
         private System.Windows.Forms.TextBox cellValueTextBox;
         private System.Windows.Forms.TextBox cellContentTextBox;
         private System.Windows.Forms.ToolStripMenuItem newToolStripMenuItem;
@@ -190,6 +192,7 @@
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem spreadsheetToolStripMenuItem;
+        protected SSGui.SpreadsheetPanel spreadsheetPanel1;
     }
 }
 

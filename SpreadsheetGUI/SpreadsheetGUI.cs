@@ -203,6 +203,11 @@ namespace SpreadsheetGUI
             }
         }
 
+        private void spreadsheetPanel1_Load(object sender, EventArgs e)
+        {
+
+        }
+
         public void DisplayMessage(string message)
         {
             MessageBox.Show(message);
